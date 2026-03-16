@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     // Prioritize system environment variables, then .env files
-    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.API_KEY || '';
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.API_KEY || 'AIzaSyCGxWf8nsFK9g-ISNuZSve2YbII7lPRLGU';
     
     return {
       server: {

@@ -30,7 +30,7 @@ export class GeminiService {
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash',
         contents: [
           ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })),
           { role: 'user', parts: [{ text: `Current Stage: ${currentStage}\nCurrent Session Data: ${JSON.stringify(sessionData)}\nUser Message: ${message}` }] }
@@ -128,7 +128,7 @@ export class GeminiService {
 
       const ai = new GoogleGenAI({ apiKey });
       const chat = ai.chats.create({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-2.0-flash',
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
         },
@@ -139,6 +139,52 @@ export class GeminiService {
     } catch (error) {
       console.error("Gemini Chat Error:", error);
       return "I apologize, but I encountered an error connecting to our systems. Please try again or contact us directly.";
+    }
+  }
+
+  async generateChatAnalysis(
+    messages: { role: 'user' | 'model', text: string }[],
+    sessionData: ChatSessionData
+  ): Promise<string> {
+    try {
+      const apiKey = this.getApiKey();
+      if (!apiKey) return 'API key missing – could not generate analysis.';
+
+      const ai = new GoogleGenAI({ apiKey });
+      const transcript = messages
+        .map(m => `${m.role === 'user' ? 'Customer' : 'AI'}: ${m.text}`)
+        .join('\n');
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.0-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [{
+              text: `You are a real estate sales analyst. Analyze the following chatbot conversation and provide a concise summary that includes:
+1. Customer Intent & Motivation
+2. Property Requirements (location, budget, timeline, bedrooms, etc.)
+3. Financing Status (if applicable)
+4. Customer Engagement Level (High/Medium/Low)
+5. Key Buying Signals
+6. Recommended Next Action for the agent
+
+Conversation Transcript:
+${transcript}
+
+Session Data Collected: ${JSON.stringify(sessionData, null, 2)}
+
+Provide a professional analysis in 200-300 words.`
+            }]
+          }
+        ],
+        config: { systemInstruction: 'You are an expert real estate sales analyst. Be concise and actionable.' }
+      });
+
+      return response.text || 'Analysis could not be generated.';
+    } catch (error) {
+      console.error('Chat analysis error:', error);
+      return 'Analysis generation failed.';
     }
   }
 
