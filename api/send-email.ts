@@ -19,15 +19,14 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const emailFrom = process.env.EMAIL_FROM;
-  const emailPassword = process.env.EMAIL_APP_PASSWORD;
+  const gmailUser = process.env.GMAIL_USER;
+  const gmailAppPassword = process.env.GMAIL_APP_PASSWORD;
 
-  if (!emailFrom || !emailPassword) {
+  if (!gmailUser || !gmailAppPassword) {
     console.warn(
-      '[send-email] EMAIL_FROM or EMAIL_APP_PASSWORD env vars not set. ' +
+      '[send-email] GMAIL_USER or GMAIL_APP_PASSWORD env vars not set. ' +
       'Email will not be sent. Configure these in your Vercel project settings.'
     );
-    // Return success to not break the chatbot flow
     res.status(200).json({ success: true, warning: 'Email credentials not configured' });
     return;
   }
@@ -35,15 +34,15 @@ export default async function handler(req: any, res: any) {
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: emailFrom,
-      pass: emailPassword,
+      user: gmailUser,
+      pass: gmailAppPassword,
     },
   });
 
   try {
     await transporter.sendMail({
-      from: `"Skyline Elite Realty Bot" <${emailFrom}>`,
-      to: 'subnest.ai@gmail.com',
+      from: `"Skyline Elite Realty Bot" <${gmailUser}>`,
+      to: gmailUser,
       subject: subject,
       html: htmlContent,
       text: textContent || htmlContent.replace(/<[^>]*>/g, ''),
