@@ -145,10 +145,11 @@ export class GeminiService {
   async generateChatAnalysis(
     messages: { role: 'user' | 'model', text: string }[],
     sessionData: ChatSessionData
-  ): Promise<string> {
+  ): Promise<{ score: number; scoreReason: string; analysis: string }> {
+    const fallback = { score: 5, scoreReason: 'Analysis unavailable.', analysis: 'Analysis generation failed.' };
     try {
       const apiKey = this.getApiKey();
-      if (!apiKey) return 'API key missing – could not generate analysis.';
+      if (!apiKey) return { ...fallback, analysis: 'API key missing.' };
 
       const ai = new GoogleGenAI({ apiKey });
       const transcript = messages
@@ -157,34 +158,52 @@ export class GeminiService {
 
       const response = await ai.models.generateContent({
         model: 'gemini-2.0-flash',
-        contents: [
-          {
-            role: 'user',
-            parts: [{
-              text: `You are a real estate sales analyst. Analyze the following chatbot conversation and provide a concise summary that includes:
-1. Customer Intent & Motivation
-2. Property Requirements (location, budget, timeline, bedrooms, etc.)
-3. Financing Status (if applicable)
-4. Customer Engagement Level (High/Medium/Low)
-5. Key Buying Signals
-6. Recommended Next Action for the agent
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `You are a senior real estate sales analyst. Analyze this chatbot lead conversation.
 
 Conversation Transcript:
 ${transcript}
 
-Session Data Collected: ${JSON.stringify(sessionData, null, 2)}
+Session Data: ${JSON.stringify(sessionData, null, 2)}
 
-Provide a professional analysis in 200-300 words.`
-            }]
-          }
-        ],
-        config: { systemInstruction: 'You are an expert real estate sales analyst. Be concise and actionable.' }
+Return a JSON object with:
+- score: integer 1-10 (lead quality: 10 = extremely hot, ready to transact immediately; 1 = cold/low potential)
+- scoreReason: 1-2 sentence explanation of the score
+- analysis: 200-250 word professional analysis covering:
+  1. Customer Intent & Motivation
+  2. Property Requirements (location, budget, timeline)
+  3. Financing / readiness status
+  4. Engagement Level (High/Medium/Low)
+  5. Key Buying Signals observed
+  6. Recommended Next Action for the agent`
+          }]
+        }],
+        config: {
+          systemInstruction: 'You are an expert real estate sales analyst. Be concise and actionable. Always return valid JSON.',
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              score: { type: Type.INTEGER },
+              scoreReason: { type: Type.STRING },
+              analysis: { type: Type.STRING },
+            },
+            required: ['score', 'scoreReason', 'analysis'],
+          },
+        },
       });
 
-      return response.text || 'Analysis could not be generated.';
+      const parsed = JSON.parse(response.text || '{}');
+      return {
+        score: Math.min(10, Math.max(1, Number(parsed.score) || 5)),
+        scoreReason: parsed.scoreReason || '',
+        analysis: parsed.analysis || 'No analysis generated.',
+      };
     } catch (error) {
       console.error('Chat analysis error:', error);
-      return 'Analysis generation failed.';
+      return fallback;
     }
   }
 

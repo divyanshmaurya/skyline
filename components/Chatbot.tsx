@@ -56,73 +56,112 @@ const Chatbot: React.FC = () => {
     }
   }, [messages, isLoading, isVoiceActive, liveInputText, liveOutputText]);
 
-  const buildEmailHtml = (data: ChatSessionData, analysis: string, chatHistory: ChatMessage[]): string => {
+  const buildEmailHtml = (
+    data: ChatSessionData,
+    result: { score: number; scoreReason: string; analysis: string },
+    chatHistory: ChatMessage[]
+  ): string => {
+    const { score, scoreReason, analysis } = result;
+
+    // Score colour: 1-3 red, 4-6 amber, 7-10 green
+    const scoreColor = score >= 7 ? '#16a34a' : score >= 4 ? '#d97706' : '#dc2626';
+    const scoreBg    = score >= 7 ? '#dcfce7' : score >= 4 ? '#fef3c7' : '#fee2e2';
+    const scoreLabel = score >= 7 ? 'HOT LEAD' : score >= 4 ? 'WARM LEAD' : 'COLD LEAD';
+    const filledDots  = '●'.repeat(score);
+    const emptyDots   = '○'.repeat(10 - score);
+
     const transcript = chatHistory
-      .map(m => `<tr><td style="padding:4px 8px;font-weight:bold;color:${m.role === 'user' ? '#2563eb' : '#374151'}">${m.role === 'user' ? 'Customer' : 'AI'}</td><td style="padding:4px 8px">${m.text}</td></tr>`)
+      .map(m => `<tr>
+        <td style="padding:5px 8px;font-weight:bold;color:${m.role === 'user' ? '#2563eb' : '#374151'};white-space:nowrap;vertical-align:top">${m.role === 'user' ? 'Customer' : 'AI'}</td>
+        <td style="padding:5px 8px">${m.text}</td>
+      </tr>`)
       .join('');
 
-    return `
-<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"><title>New Real Estate Lead</title></head>
-<body style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;color:#1f2937">
-  <div style="background:#0f172a;color:white;padding:20px;border-radius:8px 8px 0 0">
-    <h1 style="margin:0;font-size:20px">🏙️ New Real Estate Lead – Skyline Elite Realty</h1>
-    <p style="margin:4px 0 0;opacity:.7;font-size:13px">Generated automatically by the Skyline AI Concierge</p>
+<body style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;color:#1f2937">
+
+  <!-- Header -->
+  <div style="background:#0f172a;color:white;padding:24px 28px;border-radius:10px 10px 0 0">
+    <h1 style="margin:0;font-size:22px;font-weight:700">🏙️ New Real Estate Lead</h1>
+    <p style="margin:4px 0 0;opacity:.6;font-size:13px">Skyline Elite Realty · AI Concierge Report · ${new Date().toLocaleString()}</p>
   </div>
 
-  <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:20px">
-    <h2 style="color:#0f172a;font-size:16px;margin:0 0 12px">Contact Information</h2>
+  <!-- Lead Score Banner -->
+  <div style="background:${scoreBg};border:2px solid ${scoreColor};padding:20px 28px;display:flex;align-items:center;gap:20px">
+    <div style="text-align:center;min-width:80px">
+      <div style="font-size:42px;font-weight:900;color:${scoreColor};line-height:1">${score}</div>
+      <div style="font-size:10px;color:${scoreColor};font-weight:700;letter-spacing:.1em">&nbsp;OUT OF 10</div>
+    </div>
+    <div style="border-left:2px solid ${scoreColor};padding-left:20px;flex:1">
+      <div style="font-size:13px;font-weight:800;color:${scoreColor};letter-spacing:.12em;margin-bottom:6px">${scoreLabel}</div>
+      <div style="font-size:18px;letter-spacing:2px;color:${scoreColor};margin-bottom:8px">${filledDots}<span style="color:#d1d5db">${emptyDots}</span></div>
+      <p style="margin:0;font-size:13px;color:#374151;line-height:1.5">${scoreReason}</p>
+    </div>
+  </div>
+
+  <!-- Contact Information -->
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-top:0;padding:20px 28px">
+    <h2 style="color:#0f172a;font-size:15px;font-weight:700;margin:0 0 14px;text-transform:uppercase;letter-spacing:.05em">📋 Contact Details</h2>
     <table style="width:100%;border-collapse:collapse">
-      <tr><td style="padding:6px 0;color:#64748b;width:140px">Name</td><td style="padding:6px 0;font-weight:bold">${data.name || '—'}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Phone</td><td style="padding:6px 0;font-weight:bold">${data.phone || '—'}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Email</td><td style="padding:6px 0;font-weight:bold">${data.email || '—'}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Contact Preference</td><td style="padding:6px 0">${data.contactPreference || '—'}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Best Time to Reach</td><td style="padding:6px 0;font-weight:bold;color:#16a34a">${data.bestTime || '—'}</td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;width:160px;font-size:13px">Full Name</td><td style="padding:8px 0;font-weight:700;font-size:14px">${data.name || '—'}</td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Phone</td><td style="padding:8px 0;font-weight:700;font-size:14px;color:#0f172a">${data.phone || '—'}</td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Email</td><td style="padding:8px 0;font-size:14px">${data.email || '—'}</td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Preferred Contact</td><td style="padding:8px 0;font-size:14px">${data.contactPreference || '—'}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748b;font-size:13px">Best Time to Reach</td><td style="padding:8px 0;font-weight:700;font-size:14px;color:#16a34a">⏰ ${data.bestTime || '—'}</td></tr>
     </table>
   </div>
 
-  <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:20px">
-    <h2 style="color:#0f172a;font-size:16px;margin:0 0 12px">Property Requirements</h2>
+  <!-- Property Requirements -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:20px 28px">
+    <h2 style="color:#0f172a;font-size:15px;font-weight:700;margin:0 0 14px;text-transform:uppercase;letter-spacing:.05em">🏠 Property Requirements</h2>
     <table style="width:100%;border-collapse:collapse">
-      <tr><td style="padding:6px 0;color:#64748b;width:140px">Intent</td><td style="padding:6px 0"><span style="background:#dbeafe;color:#1d4ed8;padding:2px 8px;border-radius:12px;font-size:13px">${data.intent || '—'}</span></td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Location</td><td style="padding:6px 0">${data.location || '—'}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Budget</td><td style="padding:6px 0">${data.budget || '—'}</td></tr>
-      <tr><td style="padding:6px 0;color:#64748b">Timeline</td><td style="padding:6px 0">${data.timeline || '—'}</td></tr>
-      ${data.bedrooms ? `<tr><td style="padding:6px 0;color:#64748b">Bedrooms</td><td style="padding:6px 0">${data.bedrooms}</td></tr>` : ''}
-      ${data.financingStatus ? `<tr><td style="padding:6px 0;color:#64748b">Financing</td><td style="padding:6px 0">${data.financingStatus}</td></tr>` : ''}
-      ${data.zipCode ? `<tr><td style="padding:6px 0;color:#64748b">Zip Code</td><td style="padding:6px 0">${data.zipCode}</td></tr>` : ''}
-      ${data.listingPreference ? `<tr><td style="padding:6px 0;color:#64748b">Listing Choice</td><td style="padding:6px 0">${data.listingPreference}</td></tr>` : ''}
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;width:160px;font-size:13px">Intent</td><td style="padding:8px 0"><span style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700">${data.intent || '—'}</span></td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Target Location</td><td style="padding:8px 0;font-size:14px">${data.location || '—'}</td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Budget Range</td><td style="padding:8px 0;font-weight:700;font-size:14px">${data.budget || '—'}</td></tr>
+      <tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Timeline</td><td style="padding:8px 0;font-size:14px">${data.timeline || '—'}</td></tr>
+      ${data.bedrooms ? `<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Bedrooms</td><td style="padding:8px 0;font-size:14px">${data.bedrooms}</td></tr>` : ''}
+      ${data.financingStatus ? `<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Financing</td><td style="padding:8px 0;font-size:14px">${data.financingStatus}</td></tr>` : ''}
+      ${data.zipCode ? `<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:8px 0;color:#64748b;font-size:13px">Property Zip</td><td style="padding:8px 0;font-size:14px">${data.zipCode}</td></tr>` : ''}
+      ${data.listingPreference ? `<tr><td style="padding:8px 0;color:#64748b;font-size:13px">Preferred Listing</td><td style="padding:8px 0;font-size:14px">${data.listingPreference}</td></tr>` : ''}
     </table>
   </div>
 
-  <div style="background:#fff7ed;border:1px solid #fed7aa;border-top:0;padding:20px">
-    <h2 style="color:#9a3412;font-size:16px;margin:0 0 12px">🤖 AI Chat Analysis</h2>
-    <p style="margin:0;line-height:1.6;white-space:pre-wrap">${analysis}</p>
+  <!-- AI Analysis -->
+  <div style="background:#fffbeb;border:1px solid #fcd34d;border-top:0;padding:20px 28px">
+    <h2 style="color:#92400e;font-size:15px;font-weight:700;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em">🤖 AI Lead Analysis</h2>
+    <p style="margin:0;line-height:1.75;font-size:14px;color:#1f2937;white-space:pre-wrap">${analysis}</p>
   </div>
 
-  <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:20px">
-    <h2 style="color:#0f172a;font-size:16px;margin:0 0 12px">Full Chat Transcript</h2>
+  <!-- Transcript -->
+  <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;padding:20px 28px">
+    <h2 style="color:#0f172a;font-size:15px;font-weight:700;margin:0 0 12px;text-transform:uppercase;letter-spacing:.05em">💬 Full Chat Transcript</h2>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
       ${transcript}
     </table>
   </div>
 
-  <div style="background:#0f172a;color:#94a3b8;padding:12px 20px;border-radius:0 0 8px 8px;font-size:11px;text-align:center">
-    Skyline Elite Realty AI Concierge · Empire State Building, 72nd Floor, NY · concierge@skylineelite.nyc
+  <!-- Footer -->
+  <div style="background:#0f172a;color:#64748b;padding:14px 28px;border-radius:0 0 10px 10px;font-size:11px;text-align:center">
+    Skyline Elite Realty AI Concierge · Empire State Building, 72nd Floor · concierge@skylineelite.nyc
   </div>
+
 </body>
 </html>`;
   };
 
-  const triggerAgentNotification = async (data: ChatSessionData, chatHistory: ChatMessage[]) => {
-    console.log('AGENT NOTIFICATION PAYLOAD:', data);
-    try {
-      // Generate AI analysis of the conversation
-      const analysis = await gemini.generateChatAnalysis(chatHistory, data);
+  const emailSentRef = useRef(false);
 
-      const subject = `New Lead: ${data.name || 'Unknown'} – ${data.intent || 'Unknown Intent'} – ${data.location || 'No Location'}`;
-      const htmlContent = buildEmailHtml(data, analysis, chatHistory);
+  const triggerAgentNotification = async (data: ChatSessionData, chatHistory: ChatMessage[]) => {
+    if (emailSentRef.current) return; // fire exactly once per session
+    emailSentRef.current = true;
+    console.log('Sending lead email for:', data.name, '| bestTime:', data.bestTime);
+    try {
+      const result = await gemini.generateChatAnalysis(chatHistory, data);
+      const scoreLabel = result.score >= 7 ? 'HOT' : result.score >= 4 ? 'WARM' : 'COLD';
+      const subject = `[${scoreLabel} ${result.score}/10] New Lead: ${data.name || 'Unknown'} – ${data.intent || ''} – ${data.location || ''} – Call ${data.bestTime || 'TBD'}`;
+      const htmlContent = buildEmailHtml(data, result, chatHistory);
 
       const response = await fetch('/api/send-email', {
         method: 'POST',
@@ -133,8 +172,7 @@ const Chatbot: React.FC = () => {
       if (!response.ok) {
         console.warn('Email API returned non-200:', await response.text());
       } else {
-        const result = await response.json();
-        console.log('Email API result:', result);
+        console.log('Lead email sent successfully. Score:', result.score);
       }
     } catch (err) {
       console.error('triggerAgentNotification error:', err);
@@ -166,10 +204,17 @@ const Chatbot: React.FC = () => {
 
       if (response.nextStage) {
         setStage(response.nextStage);
-        if (response.nextStage === ChatStage.COMPLETE) {
-          const finalMessages = [...messages, { role: 'user' as const, text: userText }, { role: 'model' as const, text: response.message }];
-          triggerAgentNotification(updatedData, finalMessages);
-        }
+      }
+
+      // Fire email the moment bestTime is captured for the first time
+      const bestTimeJustCaptured = !sessionData.bestTime && updatedData.bestTime;
+      if (bestTimeJustCaptured) {
+        const finalMessages = [
+          ...messages,
+          { role: 'user' as const, text: userText },
+          { role: 'model' as const, text: response.message },
+        ];
+        triggerAgentNotification(updatedData, finalMessages);
       }
     } catch (error) {
       console.error('Chat Error:', error);
@@ -261,18 +306,20 @@ const Chatbot: React.FC = () => {
                 if (call.name === 'updateLeadInfo') {
                   const args = call.args as any;
                   let updatedSessionData: ChatSessionData = sessionDataRef.current;
+                  const prevBestTime = sessionDataRef.current.bestTime;
                   if (args.extractedData) {
                     updatedSessionData = { ...sessionDataRef.current, ...args.extractedData };
                     setSessionData(updatedSessionData);
                   }
                   if (args.nextStage) {
                     setStage(args.nextStage as ChatStage);
-                    if (args.nextStage === ChatStage.COMPLETE) {
-                      setMessages(prev => {
-                        triggerAgentNotification(updatedSessionData, prev);
-                        return prev;
-                      });
-                    }
+                  }
+                  // Fire email when bestTime is captured for the first time
+                  if (!prevBestTime && updatedSessionData.bestTime) {
+                    setMessages(prev => {
+                      triggerAgentNotification(updatedSessionData, prev);
+                      return prev;
+                    });
                   }
                   sessionPromise.then(session => {
                     if (session) {
