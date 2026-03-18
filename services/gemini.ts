@@ -30,7 +30,7 @@ export class GeminiService {
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash-lite',
+        model: 'gemini-1.5-flash',
         contents: [
           ...history.map(h => ({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.text }] })),
           { role: 'user', parts: [{ text: `Current Stage: ${currentStage}\nCurrent Session Data: ${JSON.stringify(sessionData)}\nUser Message: ${message}` }] }
@@ -128,7 +128,7 @@ export class GeminiService {
 
       const ai = new GoogleGenAI({ apiKey });
       const chat = ai.chats.create({
-        model: 'gemini-2.0-flash-lite',
+        model: 'gemini-1.5-flash',
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
         },
@@ -157,7 +157,7 @@ export class GeminiService {
         .join('\n');
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash-lite',
+        model: 'gemini-1.5-flash',
         contents: [{
           role: 'user',
           parts: [{
