@@ -42,7 +42,7 @@ export default async function handler(req: any, res: any) {
   try {
     await transporter.sendMail({
       from: `"Skyline Elite Realty Bot" <${gmailUser}>`,
-      to: 'mauryadivyansh22@gmail.com',
+      to: gmailUser,
       subject: subject,
       html: htmlContent,
       text: textContent || htmlContent.replace(/<[^>]*>/g, ''),
